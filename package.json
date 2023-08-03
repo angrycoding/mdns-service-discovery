@@ -1,0 +1,15 @@
+{
+  "name": "mdns-service-discovery",
+  "version": "0.0.2",
+  "description": "mdns-service-discovery",
+  "main": "dist/index.js",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/angrycoding/mdns-service-discovery"
+  },
+  "author": "Ruslan Matveev aka Angrycoding <ruslan.matveev@mediafellows.com>",
+  "files": [
+    "dist"
+  ]
+}
