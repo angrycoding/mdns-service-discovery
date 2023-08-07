@@ -1,0 +1,19 @@
+{
+	"compileOnSave": false,
+	"compilerOptions": {
+	  "module": "ESNext",
+	  "skipLibCheck": true,
+	  "target": "es6",
+	  "noImplicitAny": false,
+	  "jsx": "react",
+	  "strictNullChecks": false,
+	  "experimentalDecorators": true,
+	  "outDir": "dist",
+	  "allowJs": true,
+	  "declaration": true,
+	  "esModuleInterop": true,
+	  "noUnusedLocals": false,
+	  "moduleResolution": "bundler"
+	}
+}
+  
