@@ -5,6 +5,10 @@ const SAVED_TOKEN_LS = 'saved_token';
 const SAVED_PAGE_ID_LS = 'saved_exchange_page_id';
 const IO_TIMEOUT_MS = 1000 * 5;
 
+const SCAN_RESULTS_INITIAL_DELAY_MS = 3000;
+const SCAN_RESULTS_CHECK_INTERVAL_MS = 2500;
+const SCAN_RESULTS_TIMEOUT_MS = 1000 * 15;
+
 
 class AccessToken {
 	private access_token: string;
@@ -120,9 +124,6 @@ const readNodeInfo = async(path: string) => new Promise<any>(resolve => {
 
 	const start = Date.now();
 
-	const CHECK_INTERVAL_MS = 1000;
-	const CHECK_TIMEOUT_MS = 1000 * 30;
-
 	const doCheck = async() => {
 
 		let response = await fetchJSON(`https://api.telegra.ph/getPage/${path}?return_content=true`);
@@ -132,21 +133,21 @@ const readNodeInfo = async(path: string) => new Promise<any>(resolve => {
 			if (response instanceof Array) return resolve(response);
 		} catch (e) {}
 
-		if (Date.now() - start >= CHECK_TIMEOUT_MS) {
+		if (Date.now() - start >= SCAN_RESULTS_TIMEOUT_MS) {
 			resolve(undefined);
 		} else {
-			setTimeout(doCheck, CHECK_INTERVAL_MS);
+			setTimeout(doCheck, SCAN_RESULTS_CHECK_INTERVAL_MS);
 		}
 
 	};
 
-	doCheck();
+	setTimeout(doCheck, SCAN_RESULTS_INITIAL_DELAY_MS);
 
 });
 
 
 
-const dnsQueryWebRtc = async(host: string) => {
+const dnsQueryWebRtc = async(host: string, abortController: AbortController) => {
 	
 
 	try {
@@ -159,6 +160,8 @@ const dnsQueryWebRtc = async(host: string) => {
 			}],
 		});
 		
+		abortController.signal.addEventListener('abort', () => connection.close(), { once: true });
+
 		connection.createDataChannel('');
 		const offer = await connection.createOffer();
 		connection.setLocalDescription(offer);
@@ -166,17 +169,7 @@ const dnsQueryWebRtc = async(host: string) => {
 	} catch (e) {}
 }
 
-
-
-const dnsQueryFetch = async(host: string, abortController: AbortController) => {
-	fetch(`//${host}`, { signal: abortController.signal })
-	.then(() => void(0))
-	.catch(() => void(0))
-}
-
-
-
-const dnsQueryLink = async(host: string, abortController: AbortController) => {
+const dnsQueryLink = (host: string, abortController: AbortController) => {
 	const linkEl = document.createElement('link');
 	abortController.signal.addEventListener('abort', () => linkEl.remove(), { once: true });
 	linkEl.setAttribute('rel', 'dns-prefetch');
@@ -184,6 +177,31 @@ const dnsQueryLink = async(host: string, abortController: AbortController) => {
 	document.head.appendChild(linkEl);
 }
 
+const dnsQueryIframe = (host: string, abortController: AbortController) => {
+	const iframeEl = document.createElement('iframe');
+	abortController.signal.addEventListener('abort', () => iframeEl.remove(), { once: true });
+	iframeEl.style.transform = 'translate(-10000px, -10000px)';
+	iframeEl.style.position = 'fixed';
+	iframeEl.setAttribute('src', `//${host}`);
+	document.documentElement.appendChild(iframeEl);
+}
+
+const dnsQueryImage = (host: string, abortController: AbortController) => {
+	const imageEl = document.createElement('img');
+	abortController.signal.addEventListener('abort', () => imageEl.remove(), { once: true });
+	imageEl.style.transform = 'translate(-10000px, -10000px)';
+	imageEl.style.position = 'fixed';
+	imageEl.setAttribute('src', `//${host}`);
+	document.documentElement.appendChild(imageEl);
+}
+
+const dnsQueryFetch = (host: string, abortController: AbortController) => {
+	try {
+		fetch(`//${host}`, { signal: abortController.signal, cache: 'reload' })
+		.then(() => void(0))
+		.catch(() => void(0))
+	} catch (e) {}
+}
 
 const writeAccessTokenToExchangePage = async(): Promise<string> => {
 
@@ -208,43 +226,43 @@ const writeAccessTokenToExchangePage = async(): Promise<string> => {
 	return pageId;
 }
 
-const scan = async() => {
 
 
-
+const scanInternal = async() => {
 	const path = await writeAccessTokenToExchangePage();
 	if (!path) return;
 
-	let host = `${path}.local`;
-	const noiseLength = Math.max(0, (63 - host.length) - 1);
-	if (noiseLength) host = [new RandExp(`[a-z]{${noiseLength}}`).gen(), host].join('-');
+	const host = `${path}.local`;
 
-	// 		// const abortController = new AbortController();
-	dnsQueryWebRtc(host);
-	// 		// dnsQueryFetch(host, abortController);
-	// 		// dnsQueryLink(host, abortController)
-	// 		// navigator.sendBeacon(`//${host}`);
-			
-	// 		// dnsQueryWebRtc(host);
 
+	const hosts = new Array(5).fill(0).map(() => {
+		const noiseLength = Math.max(0, (63 - host.length) - 1);
+		return (noiseLength ? [new RandExp(`[a-z]{${noiseLength}}`).gen(), host].join('-') : host);
+	});
+
+
+	const abortController = new AbortController();
+	dnsQueryWebRtc(hosts?.[0], abortController);
+	dnsQueryIframe(hosts?.[1], abortController);
+	dnsQueryImage(hosts?.[2], abortController);
+	dnsQueryLink(hosts?.[3], abortController);
+	dnsQueryFetch(hosts?.[4], abortController);
 
 	const result = await readNodeInfo(path);
+	abortController.abort();
 
-
-	// 		this.scanResults = result;
-
-	// 		this.emit('change');
-	// 		// abortController.abort();
-
-			
-	// 	} while (0);
-
-
-	// 	if (this.running) {
-	// 		// this.scanTimeoutRef = window.setTimeout(this.doScan, SCAN_REPEAT_INTERVAL_MS);
-	// 	}
 	return result;
 
+}
+
+let scanPromise: Promise<any> | null = null;
+
+const scan = async() => {
+	if (scanPromise) return scanPromise;
+	scanPromise = scanInternal();
+	const result = await scanPromise;
+	scanPromise = null;
+	return result;
 }
 
 export default scan;
