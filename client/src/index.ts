@@ -21,9 +21,10 @@ class AccessToken {
 	}
 }
 
-const fetchJSON = async(url: string): Promise<any> => {
+const fetchJSON = async(url: string, abortController?: AbortController): Promise<any> => {
 	let result: any = undefined;
 	const controller = new AbortController();
+	if (abortController) abortController.signal.addEventListener('abort', () => controller.abort(), { once: true });
 	const timeoutRef = setTimeout(() => controller.abort(), IO_TIMEOUT_MS);
 	try {
 		result = await fetch(url, { signal: controller.signal });
@@ -209,7 +210,7 @@ const waitAnswerFromWebRTC = (path: string, abortController: AbortController) =>
 	const closeConnectionAndReturnResult = (result?: any) => {
 		peer.removeAllListeners();
 		peer.destroy();
-		if (result instanceof Array) {
+		if (!abortController.signal.aborted && result instanceof Array) {
 			console.info('got answer from webrtc')
 			return resolve(result);
 		}
@@ -224,11 +225,11 @@ const waitAnswerFromTelegraph = async(path: string, abortController: AbortContro
 
 	const start = Date.now();
 
-	// if (abortController.signal.aborted) return;
-
 	const doCheck = async() => {
 
-		let response = await fetchJSON(`https://api.telegra.ph/getPage/${path}?return_content=true`);
+		if (abortController.signal.aborted) return;
+		let response = await fetchJSON(`https://api.telegra.ph/getPage/${path}?return_content=true`, abortController);
+		if (abortController.signal.aborted) return;
 		
 		try {
 			response = JSON.parse(response?.result?.content?.[0]);
@@ -246,7 +247,8 @@ const waitAnswerFromTelegraph = async(path: string, abortController: AbortContro
 
 	};
 
-	setTimeout(doCheck, SCAN_RESULTS_INITIAL_DELAY_MS);
+	const initialTimeout = setTimeout(doCheck, SCAN_RESULTS_INITIAL_DELAY_MS);
+	abortController.signal.addEventListener('abort', () => clearTimeout(initialTimeout), { once: true });
 
 });
 
