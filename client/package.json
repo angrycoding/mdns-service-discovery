@@ -21,6 +21,7 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
+    "peerjs": "^1.4.7",
     "randexp": "^0.5.3"
   }
 }

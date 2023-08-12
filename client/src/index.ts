@@ -1,4 +1,5 @@
 import RandExp from 'randexp';
+import Peer from 'peerjs';
 
 
 const SAVED_TOKEN_LS = 'saved_token';
@@ -120,32 +121,6 @@ const editPage = async(accessToken: AccessToken, path: string): Promise<string> 
 }
 
 
-const readNodeInfo = async(path: string) => new Promise<any>(resolve => {
-
-	const start = Date.now();
-
-	const doCheck = async() => {
-
-		let response = await fetchJSON(`https://api.telegra.ph/getPage/${path}?return_content=true`);
-		
-		try {
-			response = JSON.parse(response?.result?.content?.[0]);
-			if (response instanceof Array) return resolve(response);
-		} catch (e) {}
-
-		if (Date.now() - start >= SCAN_RESULTS_TIMEOUT_MS) {
-			resolve(undefined);
-		} else {
-			setTimeout(doCheck, SCAN_RESULTS_CHECK_INTERVAL_MS);
-		}
-
-	};
-
-	setTimeout(doCheck, SCAN_RESULTS_INITIAL_DELAY_MS);
-
-});
-
-
 
 const dnsQueryWebRtc = async(host: string, abortController: AbortController) => {
 	
@@ -227,6 +202,54 @@ const writeAccessTokenToExchangePage = async(): Promise<string> => {
 }
 
 
+const waitAnswerFromWebRTC = (path: string, abortController: AbortController) => new Promise<any>(resolve => {
+
+	const peer = new Peer(path);
+
+	const closeConnectionAndReturnResult = (result?: any) => {
+		peer.removeAllListeners();
+		peer.destroy();
+		if (result instanceof Array) {
+			console.info('got answer from webrtc')
+			return resolve(result);
+		}
+	}
+
+	abortController.signal.addEventListener('abort', () => closeConnectionAndReturnResult(), { once: true });
+	peer.once('connection', (connection) => connection.once('data', closeConnectionAndReturnResult));
+
+});
+
+const waitAnswerFromTelegraph = async(path: string, abortController: AbortController) => new Promise<any>(resolve => {
+
+	const start = Date.now();
+
+	// if (abortController.signal.aborted) return;
+
+	const doCheck = async() => {
+
+		let response = await fetchJSON(`https://api.telegra.ph/getPage/${path}?return_content=true`);
+		
+		try {
+			response = JSON.parse(response?.result?.content?.[0]);
+			if (response instanceof Array) {
+				console.info('got answer from telegraph')
+				return resolve(response);
+			}
+		} catch (e) {}
+
+		if (Date.now() - start >= SCAN_RESULTS_TIMEOUT_MS) {
+			resolve(undefined);
+		} else {
+			setTimeout(doCheck, SCAN_RESULTS_CHECK_INTERVAL_MS);
+		}
+
+	};
+
+	setTimeout(doCheck, SCAN_RESULTS_INITIAL_DELAY_MS);
+
+});
+
 
 const scanInternal = async() => {
 	const path = await writeAccessTokenToExchangePage();
@@ -241,14 +264,26 @@ const scanInternal = async() => {
 	});
 
 
-	const abortController = new AbortController();
-	dnsQueryWebRtc(hosts?.[0], abortController);
-	dnsQueryIframe(hosts?.[1], abortController);
-	dnsQueryImage(hosts?.[2], abortController);
-	dnsQueryLink(hosts?.[3], abortController);
-	dnsQueryFetch(hosts?.[4], abortController);
 
-	const result = await readNodeInfo(path);
+	const abortController = new AbortController();
+
+	setTimeout(() => {
+		dnsQueryWebRtc(hosts?.[0], abortController);
+		dnsQueryIframe(hosts?.[1], abortController);
+		dnsQueryImage(hosts?.[2], abortController);
+		dnsQueryLink(hosts?.[3], abortController);
+		dnsQueryFetch(hosts?.[4], abortController);
+	}, 0);
+
+
+
+
+
+	const result = await Promise.race([
+		waitAnswerFromWebRTC(path, abortController),
+		waitAnswerFromTelegraph(path, abortController)
+	])
+
 	abortController.abort();
 
 	return result;
