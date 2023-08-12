@@ -1,0 +1,31 @@
+{
+  "name": "mdns-service-discovery",
+  "version": "0.0.0",
+  "description": "mdns-service-discovery",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/angrycoding/mdns-service-discovery"
+  },
+  "author": "Ruslan Matveev aka Angrycoding <ruslan.matveev@mediafellows.com>",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "start": "nodemon",
+    "build": "rm -rf dist && mkdir -p dist && yarn tsc",
+    "prepublishOnly": "yarn build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.4.6",
+    "nodemon": "^3.0.1",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "dns-packet": "^5.6.0",
+    "puppeteer": "^21.0.3",
+    "quick-local-ip": "^1.0.7"
+  }
+}
