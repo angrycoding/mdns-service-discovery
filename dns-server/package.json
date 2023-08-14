@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "dns-packet": "^5.6.0"
+  }
+}
