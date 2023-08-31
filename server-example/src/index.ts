@@ -1,5 +1,5 @@
 import HTTPS from 'https';
-import { getCertificates, start } from '../../server/src/index';
+import { getCertificates, start } from 'mdns-service-discovery';
 import { IncomingMessage, ServerResponse } from 'http';
 
 
