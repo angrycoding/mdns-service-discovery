@@ -203,24 +203,6 @@ const writeAccessTokenToExchangePage = async(): Promise<string> => {
 }
 
 
-const waitAnswerFromWebRTC = (path: string, abortController: AbortController) => new Promise<any>(resolve => {
-
-	const peer = new Peer(path);
-
-	const closeConnectionAndReturnResult = (result?: any) => {
-		peer.removeAllListeners();
-		peer.destroy();
-		if (!abortController.signal.aborted && result instanceof Array) {
-			console.info('got answer from webrtc')
-			return resolve(result);
-		}
-	}
-
-	abortController.signal.addEventListener('abort', () => closeConnectionAndReturnResult(), { once: true });
-	peer.once('connection', (connection) => connection.once('data', closeConnectionAndReturnResult));
-
-});
-
 const waitAnswerFromTelegraph = async(path: string, abortController: AbortController) => new Promise<any>(resolve => {
 
 	const start = Date.now();
@@ -278,14 +260,7 @@ const scanInternal = async() => {
 	}, 0);
 
 
-
-
-
-	const result = await Promise.race([
-		waitAnswerFromWebRTC(path, abortController),
-		waitAnswerFromTelegraph(path, abortController)
-	])
-
+	const result = await waitAnswerFromTelegraph(path, abortController);
 	abortController.abort();
 
 	return result;
