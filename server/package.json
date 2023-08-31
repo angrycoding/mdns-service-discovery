@@ -1,6 +1,6 @@
 {
   "name": "mdns-service-discovery",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "mdns-service-discovery",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,18 +14,16 @@
     "dist"
   ],
   "scripts": {
-    "start": "nodemon",
-    "build": "rm -rf dist && mkdir -p dist && yarn tsc",
+    "build": "rm -rf dist && mkdir -p dist && yarn tsc && cp -r ./fullchain1.pem ./dist && cp -r ./privkey1.pem ./dist",
     "prepublishOnly": "yarn build"
   },
   "devDependencies": {
     "@types/node": "^20.4.6",
-    "nodemon": "^3.0.1",
     "typescript": "^5.1.6"
   },
   "dependencies": {
     "dns-packet": "^5.6.0",
-    "puppeteer": "^21.0.3",
-    "quick-local-ip": "^1.0.7"
+    "quick-local-ip": "^1.0.7",
+    "request": "^2.88.2"
   }
 }
