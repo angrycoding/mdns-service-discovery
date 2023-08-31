@@ -127,7 +127,6 @@ const onMessage = (data, from) => {
 	})?.filter(a => a)?.[0];
 
 	if (hostToCheck) {
-		console.info('RECEIVED FROM', from)
 		processDNSRequest(hostToCheck);
 	}
 	
@@ -152,10 +151,6 @@ const getCertificates = async(): Promise<{ cert: string, key: string }> => {
 		key: await fetchText('http://local-ip.co/cert/server.key')
 	}
 
-	// return {
-	// 	cert: FS.readFileSync(`${__dirname}/fullchain1.pem`, 'utf-8'),
-	// 	key: FS.readFileSync(`${__dirname}/privkey1.pem`, 'utf-8')
-	// }
 }
 
 const start = async(port: number, debug?: boolean): Promise<boolean> => {
