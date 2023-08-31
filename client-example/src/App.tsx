@@ -16,9 +16,9 @@ export default () => {
 		setActiveNodes(result)
 
 		if (result.length) {
-			console.info('REQUEST_FIRST');
-			const x = await fetch(result[0]);
-			setResponse(await x?.text());
+			// console.info('REQUEST_FIRST');
+			// const x = await fetch(result[0]);
+			// setResponse(await x?.text());
 			
 		}
 		setIsScanning(false);

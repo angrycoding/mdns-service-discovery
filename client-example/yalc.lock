@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "packages": {
+    "mdns-service-discovery": {
+      "signature": "6fdd61899c328d2127100df1ea8c5988",
+      "file": true
+    },
+    "mdns-service-discovery-client": {
+      "signature": "b690fd5917c65b59b3b2f3a982eb8a99",
+      "file": true,
+      "replaced": "*"
+    }
+  }
+}
